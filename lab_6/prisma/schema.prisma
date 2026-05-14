@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model developers {
+  devid          Int              @id @default(autoincrement())
+  devname        String           @db.VarChar(150)
+  userid         Int?
+  users          users?           @relation(fields: [userid], references: [userid], onUpdate: NoAction)
+  gamedevelopers gamedevelopers[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model friends {
+  user1id                      Int
+  user2id                      Int
+  status                       String? @default("accepted") @db.VarChar(20)
+  users_friends_user1idTousers users   @relation("friends_user1idTousers", fields: [user1id], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+  users_friends_user2idTousers users   @relation("friends_user2idTousers", fields: [user2id], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user1id, user2id])
+}
+
+model gamedevelopers {
+  gameid     Int
+  devid      Int
+  developers developers @relation(fields: [devid], references: [devid], onDelete: Cascade, onUpdate: NoAction)
+  games      games      @relation(fields: [gameid], references: [gameid], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([gameid, devid])
+}
+
+model gamegenres {
+  gameid  Int
+  genreid Int
+  games   games  @relation(fields: [gameid], references: [gameid], onDelete: Cascade, onUpdate: NoAction)
+  genres  genres @relation(fields: [genreid], references: [genreid], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([gameid, genreid])
+}
+
+model gamepublishers {
+  gameid     Int
+  pubid      Int
+  games      games      @relation(fields: [gameid], references: [gameid], onDelete: Cascade, onUpdate: NoAction)
+  publishers publishers @relation(fields: [pubid], references: [pubid], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([gameid, pubid])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model games {
+  gameid         Int              @id @default(autoincrement())
+  title          String           @db.VarChar(200)
+  description    String?
+  releasedate    DateTime?        @db.Date
+  agerating      String?          @db.VarChar(10)
+  baseprice      Decimal?         @default(0.0) @db.Decimal(10, 2)
+  isEarlyAccess  Boolean          @default(false)
+  gametags       gametags[]
+  gamedevelopers gamedevelopers[]
+  gamegenres     gamegenres[]
+  gamepublishers gamepublishers[]
+  library        library[]
+  orderitems     orderitems[]
+  reviews        reviews[]
+}
+
+model genres {
+  genreid    Int          @id @default(autoincrement())
+  genrename  String       @unique @db.VarChar(50)
+  gamegenres gamegenres[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model library {
+  userid        Int
+  gameid        Int
+  playtimehours Int?      @default(0)
+  purchasedate  DateTime? @default(now()) @db.Timestamp(6)
+  games         games     @relation(fields: [gameid], references: [gameid], onDelete: Cascade, onUpdate: NoAction)
+  users         users     @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([userid, gameid])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model orderitems {
+  orderitemid     Int     @id @default(autoincrement())
+  orderid         Int
+  gameid          Int
+  priceatpurchase Decimal @db.Decimal(10, 2)
+  games           games   @relation(fields: [gameid], references: [gameid], onDelete: NoAction, onUpdate: NoAction)
+  orders          orders  @relation(fields: [orderid], references: [orderid], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model orders {
+  orderid     Int          @id @default(autoincrement())
+  userid      Int
+  orderdate   DateTime?    @default(now()) @db.Timestamp(6)
+  totalamount Decimal      @db.Decimal(10, 2)
+  orderitems  orderitems[]
+  users       users        @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model points {
+  userid      Int   @id
+  totalpoints Int?  @default(0)
+  users       users @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model publishers {
+  pubid          Int              @id @default(autoincrement())
+  pubname        String           @db.VarChar(150)
+  userid         Int?
+  gamepublishers gamepublishers[]
+  users          users?           @relation(fields: [userid], references: [userid], onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model reviews {
+  reviewid   Int       @id @default(autoincrement())
+  userid     Int?
+  gameid     Int?
+  comment    String?
+  rating     Int?
+  reviewdate DateTime? @default(now()) @db.Timestamp(6)
+  games      games?    @relation(fields: [gameid], references: [gameid], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userid, gameid])
+}
+
+model users {
+  userid                         Int          @id @default(autoincrement())
+  nickname                       String       @db.VarChar(100)
+  email                          String       @unique @db.VarChar(150)
+
+  regdate                        DateTime?    @default(now()) @db.Timestamp(6)
+  developers                     developers[]
+  friends_friends_user1idTousers friends[]    @relation("friends_user1idTousers")
+  friends_friends_user2idTousers friends[]    @relation("friends_user2idTousers")
+  library                        library[]
+  orders                         orders[]
+  points                         points?
+  publishers                     publishers[]
+  reviews                        reviews[]
+}
+
+model tags {
+  tagid    Int        @id @default(autoincrement())
+  tagname  String     @unique @db.VarChar(50)
+  gametags gametags[]
+}
+
+model gametags {
+  gameid Int
+  tagid  Int
+  games  games @relation(fields: [gameid], references: [gameid], onDelete: Cascade, onUpdate: NoAction)
+  tags   tags  @relation(fields: [tagid], references: [tagid], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([gameid, tagid])
+}
